@@ -1,0 +1,401 @@
+---
+title: "DATA 607 Final Project"
+author: "Joyce Aldrich"
+date: "2023-04-21"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction: 
+
+US Tech firms around the globe are grappling with the economic slowdown. Slow consumer spending, higher interest rates by central banks, and a strong dollar overseas are hinting towards a possible recession, and tech firms have started laying off employees. Meta recently fired 13% of its workforce, which amounts to more than 11,000 employees, due to this economic slowdown.
+
+Based on the recent layoffs dataset, I would like to approach my project in following four ways:
+
+1. US companies analysis by location and industry
+
+2. Focus on the top 5 US companies that have laid off the most employees since 2022
+
+3. Top 5 US companies' stock performance since August 2022 
+
+4. Web scrapping for the current layoffs news from 3 different news websites 
+
+To perform this analysis, we will obtain the Layoffs dataset from Kaggle and the stock prices from Yahoo Finance. We will then analyze the dataset to see if there is any relationship between them.
+
+
+# WorkFlow
+
+Process Data
+
+* Extract datasets from these following websites by using .csv and Yahoo Finance and web scrapping method.
+
+Tidy / Transform
+
+* Import those dataset into R
+
+* Tidy the data as necessary, eliminate unwanted columns
+
+* To combine the data sources, we need to link the top 5 US companies from layoffs dataset with stock historical data via YAHOO Finance
+
+Analyze
+
+* US companies analysis by location and industry
+
+* Focus on the top 5 US companies that have laid off the most employees since 2022
+
+* Top 5 US companies' stock performance since August 2022 
+
+* Web scrapping for the current layoffs news from 3 different news websites 
+
+Present
+
+* Use tables, charts, and a word cloud to present the conclusions.
+
+# Packages
+
+The following libraries were used in this project:
+
+```{r }
+library(readr)
+library(tidyr)
+library(dplyr)
+library(stringr)
+library(ggplot2)
+library(rvest)
+library(tidyverse)
+library(reshape2)
+library(quantmod)
+library(tidyquant)
+library(tidytext)
+library(wordcloud)
+
+```
+
+# Data 1: loading the dataset from Kaggle
+
+This dataset was made with the hope to enable Kaggle community to look into analyzing recent tech turmoil and discover useful insights.
+
+* Link: https://www.kaggle.com/datasets/swaptr/layoffs-2022
+
+```{r}
+# Load the Layoffs dataset into R
+layoffs <-read_csv(file = '/Users/joycealdrich/Documents/SPS Data Science/Data 607/Final Project/layoffs.csv')
+
+# Examine the structure of the dataset
+str(layoffs)
+
+head(layoffs)
+```
+
+
+# Data Cleaning:
+
+For this final project, the focus will be on US companies with a start date of January 1st, 2022
+
+```{r}
+# filter US companies & drop unwanted variables 
+
+layoffs_1 <- layoffs %>% 
+  subset(select =-c(percentage_laid_off, stage, funds_raised)) %>% 
+  filter (country =="United States", total_laid_off !="" , date >="2022-01-01") %>%
+  arrange(company,date)
+
+```
+
+# Analysis 1: Analyzing US companies by their location and industry
+
+In this economic recession, there has been a significant impact on the US job market, with layoffs occurring in a wide range of locations and industries. The high number of layoffs in the San Francisco Bay Area, Seattle, and other major cities indicates that urban areas have been particularly affected. The dominance of tech-related industries such as consumer (Meta, Google, and others) and retail (Amazon and others) among the top industries also highlights the impact of automation and changing consumer behavior on the job market.
+
+Over the last 6 months, we have often heard about these top 10 US cities in the news, especially regarding the layoffs in the tech-related industry in the San Francisco Bay Area, including companies like Google, Meta, Salesforce, Cisco, and others. Overall, these outcomes suggest the need for ongoing support and resources to help those affected by layoffs to find new employment opportunities and support the US economy during this challenging time.
+
+```{r}
+# Count layoffs by location
+layoffs_by_location <- layoffs_1%>%
+  group_by(location) %>%
+  summarize(total_layoffs = sum(total_laid_off))
+
+# View the top 10 locations by layoffs
+top_locations <- layoffs_by_location %>%
+  arrange(desc(total_layoffs)) %>%
+  head(10)
+
+
+# Plot Top 10 locations by layoffs
+ggplot(top_locations, aes(x = reorder(location, total_layoffs), y = total_layoffs)) +
+  geom_col(fill = "light blue") +
+  labs(title = "US Top 10 Locations by Layoffs 2022 - 2023", x = "Location", y = "Total Layoffs") +
+    geom_text(aes(label=total_layoffs),size =3, fontface = "bold")+
+  theme_bw() +
+  theme(axis.title.y = element_text(size = 12)) +
+  coord_flip()
+
+
+# Count layoffs by industry
+layoffs_by_industry <- layoffs_1 %>%
+  group_by(industry) %>%
+  summarize(total_layoffs = sum(total_laid_off))
+
+# View the top 10 Industries by layoffs
+top_industries <- layoffs_by_industry %>%
+  arrange(desc(total_layoffs)) %>%
+  head(10)
+
+
+# Plot industries by layoffs
+ggplot(top_industries, aes(x = reorder(industry, total_layoffs), y = total_layoffs)) +
+  geom_col(fill = "red") +
+  labs(title = "US Top 10 Industries by Layoffs 2022-2023", x = "Industry", y = "Total Layoffs") +
+   geom_text(aes(label=total_layoffs),size =3,
+   fontface = "bold")+
+  theme_bw() +
+  coord_flip()
+
+
+```
+
+
+
+
+# Analysis 2: Top 5 US companies with the most layoffs
+
+The top 5 US companies that have laid off the most employees, will help to identify the companies that have been most affected by the economic slowdown and shed light on the factors that may have contributed to their layoffs.
+
+Based on the latest analysis of the layoffs data for US companies, we found the following insights on the top 5 US companies:
+
+Amazon: Since October 2022, Amazon has laid off a total of 27,150 employees over four rounds of layoffs. These layoffs were mainly related to the company's efforts to streamline its operations and reduce costs.
+
+Meta (formerly known as Facebook): Since November 2021, Meta has laid off a total of 21,000 employees over two rounds of layoffs. The most recent news indicates that Meta plans to lay off additional employees in the future, as part of its ongoing efforts to streamline its operations and focus on its core businesses.
+
+Google: In this Janaury, Google has laid off a total of 12,000 employees.
+
+Microsoft:In this Janaury, Microsoft has laid off a total of 10,000 employees.
+
+Salesforce: Since October 2022, Salesforce has laid off a total of 1,090 employees.
+
+
+```{r}
+# calculate total laid off
+by_company <-layoffs_1 %>% 
+  group_by(company) %>% 
+  summarise(Total_count = sum(total_laid_off))
+
+# get the top 5 companies data 
+top_5_companies <- by_company%>%
+  slice_max(Total_count, n=5) 
+
+# plot in to the chart
+top_5_companies %>% 
+mutate(company = fct_reorder(company, Total_count)) %>%
+ggplot( aes(x=Total_count,y=company, fill=company))+
+  geom_bar(stat='identity',width = 0.8) + 
+  geom_text(aes(label=Total_count),size =3,
+    hjust = 1, nudge_x = -.5, fontface = "bold")+
+  theme_minimal()+
+    ggtitle("Layoffs Trend for Top 5 US Companies") +
+      labs(y="Companies", x="Layoff Count")
+
+# get details of the top 5 companies
+top_5_companies_details <- 
+  filter (layoffs_1,company %in% top_5_companies$company)
+  
+top_5_companies_details
+```
+
+
+# Analysis 3: Top 5 US companies' stock performance since August 2022 
+
+Based on the laid off date, look into the top 5 US companies’ stock performance since August 2022 and to analyze the impact of stock price. The relationship between the layoff dates and the stock prices of these companies will also provide interesting insights into the impact of layoffs on their financial performance.
+
+Per these top 5 companies' stock price trend, it is notable that the stock price saw an upward trend after the company laid off employees overall these top 5 companies. 
+
+### Create each company layoff date
+
+```{r}
+
+amazon_layoff<- 
+  filter (layoffs_1, company %in% "Amazon")
+
+meta_layoff<- 
+  filter (layoffs_1, company %in% "Meta")
+
+google_layoff<- 
+  filter (layoffs_1, company %in% "Google")
+
+microsoft_layoff<- 
+  filter (layoffs_1, company %in% "Microsoft")
+
+salesforce_layoff<- 
+  filter (layoffs_1, company %in% "Salesforce")
+
+
+```
+
+
+### Data 2: Download Historial Stock Price data from 2022-08-01 via Yahoo Finance 
+
+```{r}
+# get amazon stock price 
+amazon <- tq_get('AMZN',
+               from = "2022-08-01",
+               get = "stock.prices")
+# get meta stock price 
+meta <- tq_get('META',
+               from = "2022-08-01",
+               get = "stock.prices")
+# get google stock price 
+google <- tq_get('GOOG',
+               from = "2022-08-01",
+               get = "stock.prices")
+# get microsoft stock price 
+microsoft <- tq_get('MSFT',
+               from = "2022-08-01",
+               get = "stock.prices")
+# get salesforce stock price 
+salesforce <- tq_get('CRM',
+               from = "2022-08-01",
+               get = "stock.prices")
+
+```
+
+
+## Amazon Stock Price 2022-2023 vs Layoffs
+```{r}
+# Plot the data using ggplot and geom_line
+amazon %>%
+  ggplot(aes(x = date, y = adjusted, color = symbol)) +
+  geom_line() +
+  theme_classic()+
+# Add vertical lines using the date variable in the amazom layoff dataframe
+  geom_vline(data=amazon_layoff, aes(xintercept =date), linetype = "dashed", color = "blue") +
+    ggtitle("Amazon Stock Price 2022-2023 vs Layoffs") +
+      labs(y="Stock Price", x="Date (August 2022 to April 2023)")
+  
+```
+
+## Meta Stock Price 2022-2023 vs Layoffs
+```{r}
+
+meta %>%
+  ggplot(aes(x = date, y = adjusted, color = symbol)) +
+  geom_line() +
+  theme_classic()+
+  geom_vline(data=meta_layoff, aes(xintercept =date), linetype = "dashed", color = "blue") +
+    ggtitle("Meta Stock Price 2022-2023 vs Layoffs") +
+      labs(y="Stock Price", x="Date (August 2022 to April 2023)")
+  
+```
+
+
+
+## Google Stock Price 2022-2023 vs Layoffs
+```{r}
+google %>%
+  ggplot(aes(x = date, y = adjusted, color = symbol)) +
+  geom_line() +
+  geom_vline(data=google_layoff, aes(xintercept =date), linetype = "dashed", color = "blue") +
+      ggtitle("Google Stock Price 2022-2023 vs Layoffs") +
+      labs(y="Stock Price", x="Date (August 2022 to April 2023)")
+```
+
+## Microsoft
+
+```{r}
+microsoft %>%
+  ggplot(aes(x = date, y = adjusted, color = symbol)) +
+  geom_line() +
+  geom_vline(data=microsoft_layoff, aes(xintercept =date), linetype = "dashed", color = "blue") +
+      ggtitle("Microsoft Stock Price 2022-2023 vs Layoffs") +
+      labs(y="Stock Price", x="Date (August 2022 to April 2023)")
+```
+
+## Salesforce
+```{r}
+salesforce %>%
+  ggplot(aes(x = date, y = adjusted, color = symbol)) +
+  geom_line() +
+  geom_vline(data=salesforce_layoff, aes(xintercept =date), linetype = "dashed", color = "blue") +
+      ggtitle("Salesforce Stock Price 2022-2023 vs Layoffs") +
+      labs(y="Stock Price", x="Date (August 2022 to April 2023)")
+```
+
+
+
+
+# Analysis 4: Web scrapping for the current layoffs news from 3 different news websites 
+
+Note that "Meta" is the most frequent word in this word cloud, created from headlines across three different sources filtered by the keyword "layoffs". This suggests that the layoffs at Meta, previously known as Facebook, have garnered significant attention in the media. It's worth noting that both Meta and Amazon have been impacted by the recent economic downturn, and have been actively seeking solutions to improve their companies' financial outlook for their investors. Despite these efforts, both companies have seen multiple rounds of layoffs, indicating that layoffs may not be enough to mitigate the economic impact. This trend may continue and may result in another company taking the lead in the US market, potentially leading to a shift in the other industries. 
+
+
+### Data 3: News Keyword - Web Scrapping
+
+Obtain news headlines via 3 different news sites, WSJ, Business insider, and TechCrunch and searching "layoffs" keyword.  
+
+```{r}
+library(rvest)
+library(dplyr)
+
+link_1 = "https://www.wsj.com/search?query=layoffs&mod=searchresults_viewallresults"
+news_1 = read_html(link_1)
+
+headlines_1 = news_1 %>% 
+  html_nodes("div:nth-child(5) .WSJTheme--headlineText--He1ANr9C") %>% 
+  html_text()
+
+link_2 = "https://www.businessinsider.com/s?q=layoffs"
+news_2 = read_html(link_2)
+
+headlines_2 = news_2 %>% 
+  html_nodes(".tout-title-link") %>% 
+  html_text()
+
+link_3 = "https://search.techcrunch.com/search;_ylc=X3IDMgRncHJpZANsLjlMRmdMblFlQ3BsNlJRQUpqaHNBBG5fc3VnZwM5BHBvcwMwBHBxc3RyAwRwcXN0cmwDMARxc3RybAM3BHF1ZXJ5A2xheW9mZnMEdF9zdG1wAzE2ODIwOTI1MTA-?p=layoffs&fr=techcrunch"
+news_3 = read_html(link_3)
+
+headlines_3 = news_3 %>% 
+  html_nodes(".fw-b") %>% 
+  html_text()
+
+
+headlines_1
+headlines_2
+headlines_3
+  
+  
+```
+
+
+### Perform a word cloud graphic 
+
+```{r}
+
+# Combine the headlines from three pages
+all_headlines <- c(headlines_1, headlines_2, headlines_3)
+
+# Create a data frame with one column for the text
+df <- data.frame(text = all_headlines)
+
+# Tokenize the text and remove unwanted word 
+tokens <- df %>% 
+  unnest_tokens(word, text) %>% 
+  anti_join(stop_words) %>% 
+  filter(!word %in% c("layoffs")) %>% 
+  mutate(word = gsub("'s$", "", word))
+
+
+# Create a frequency table of the words
+word_freq <- tokens %>% 
+  count(word, sort = TRUE)
+
+# Create a word cloud
+wordcloud(word_freq$word, word_freq$n, max.words = 50, colors = brewer.pal(8, "Dark2"))
+
+```
+
+# Conclusion:
+
+I focused on analyzing the top 5 US companies that have laid off the most employees since 2022, using their stock price data from August 2022. To conduct the analysis, I used the layoff dataset from Kaggle and historical stock price data.
+
+Based on the analysis, it was found that San Francisco Bay Area had the highest number of layoffs compared to other metropolitan cities. Additionally, most of the laid off companies belonged to the tech industry and were classified under the consumer industry. Amazon and Meta were the two most affected companies since last October, and they had to undergo multiple rounds of layoffs, indicating that layoffs alone may not be sufficient to mitigate the economic impact. This trend is likely to continue, and it may lead to another company taking the lead in the US market, potentially resulting in a shift in other industries.
